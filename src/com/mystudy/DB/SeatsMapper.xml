@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+           "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="seats">
+
+   <!-- ================= 좌석 등록 ================= -->
+   <insert id="insertSeat" parameterType="VO.SeatsVO">
+      <selectKey keyProperty="seatId" resultType="int"
+         order="BEFORE">
+         SELECT SEQ_SEATS_SEATID.NEXTVAL FROM dual
+      </selectKey>
+      INSERT INTO SEATS
+      (SEATID, CONCERTID, SEATNUMBER, SEATTYPE,
+      PRICE,
+      ISAVAILABLE, USERID)
+      VALUES
+      (#{seatId}, #{concertId}, #{seatNumber},
+      #{seatType},
+      #{price}, #{isAvailable}, #{userId})
+   </insert>
+
+   <!-- ================= 공연별 좌석 조회 ================= -->
+   <select id="selectByConcertId" parameterType="int"
+      resultType="VO.SeatsVO">
+      SELECT
+      SEATID,
+      CONCERTID,
+      SEATNUMBER,
+      SEATTYPE,
+      PRICE,
+      ISAVAILABLE,
+      USERID
+      FROM SEATS
+      WHERE CONCERTID = #{concertId}
+      ORDER BY
+      SEATID
+   </select>
+
+   <!-- ================= 좌석 ID 조회 ================= -->
+   <select id="selectSeatId" parameterType="map" resultType="int">
+      SELECT
+      SEATID
+      FROM SEATS
+      WHERE CONCERTID = #{concertId}
+      AND SEATNUMBER =
+      #{seatNumber}
+   </select>
+
+   <!-- ================= 공연ID + 좌석번호로 좌석정보 조회 ================= -->
+   <select id="selectByConcertIdAndSeatNumber" parameterType="map"
+      resultType="VO.SeatsVO">
+      SELECT
+      SEATID,
+      CONCERTID,
+      SEATNUMBER,
+      SEATTYPE,
+      PRICE,
+      ISAVAILABLE,
+      USERID
+      FROM SEATS
+      WHERE CONCERTID = #{concertId}
+      AND
+      SEATNUMBER = #{seatNumber}
+   </select>
+
+   <!-- ================= 좌석 예약 가능 여부 조회 (문자열 반환) ================= -->
+   <select id="selectAvailabilityById" parameterType="int"
+      resultType="string">
+      SELECT ISAVAILABLE
+      FROM SEATS
+      WHERE SEATID = #{seatId}
+   </select>
+
+   <!-- ================= 좌석 예약 상태 업데이트 (ID: updateSeatAvailability로 통일) ================= -->
+   <update id="updateSeatAvailability" parameterType="map">
+      UPDATE SEATS
+      SET ISAVAILABLE = #{isAvailable}
+      WHERE SEATID = #{seatId}
+   </update>
+
+   <!-- ================= 좌석 상태 + 예약자 ID 업데이트 ================= -->
+   <update id="updateAvailabilityAndUser" parameterType="map">
+      UPDATE
+      SEATS
+      SET ISAVAILABLE = #{isAvailable},
+      USERID = #{userId}
+      WHERE SEATID =
+      #{seatId}
+   </update>
+
+   <!-- ================= 좌석 가격 조회 (공연ID + 좌석번호) ================= -->
+   <select id="selectPriceBySeatNumber" parameterType="map"
+      resultType="int">
+      SELECT PRICE
+      FROM SEATS
+      WHERE CONCERTID = #{concertId}
+      AND
+      SEATNUMBER = #{seatNumber}
+   </select>
+
+   <select id="selectSeatsAvg" resultType="map">
+SELECT
+    c.TITLE,
+    c.CATEGORY,
+    MIN(c.IMAGE) AS IMAGE, -- 대표 이미지 한 개만
+    ROUND(SUM(CASE WHEN s.ISAVAILABLE = 'N' THEN 1 ELSE 0 END) * 100.0 / COUNT(s.SEATID), 2) AS reservation_rate
+FROM CONCERTS c
+JOIN SEATS s ON c.CONCERTID = s.CONCERTID
+WHERE c.CONCERTDATE >= SYSDATE
+GROUP BY c.TITLE, c.CATEGORY
+ORDER BY reservation_rate DESC
+</select>
+
+<!-- ================= 공연 ID로 제목 조회 ================= -->
+<select id="getConcertTitleById" parameterType="int" resultType="string">
+   SELECT TITLE
+   FROM CONCERTS
+   WHERE CONCERTID = #{concertId}
+</select>
+
+
+
+
+
+</mapper>

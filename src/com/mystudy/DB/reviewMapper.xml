@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="review">
+
+	<!-- ResultMap 설정 (concertTitle, name 포함) -->
+	<resultMap id="reviewMap" type="VO.ReviewVO">
+		<id property="reviewId" column="REVIEWID" />
+		<result property="userId" column="USERID" />
+		<result property="reservationId" column="RESERVATIONID" />
+		<result property="score" column="SCORE" />
+		<result property="content" column="CONTENT" />
+		<result property="concertTitle" column="CONCERTTITLE" />
+		<result property="name" column="NAME" />
+	</resultMap>
+
+	<!-- 리뷰 등록 -->
+	<insert id="insertReview" parameterType="VO.ReviewVO">
+		<selectKey keyProperty="reviewId" resultType="int"
+			order="BEFORE">
+			SELECT SEQ_REVIEW_REVIEWID.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO REVIEW (REVIEWID, USERID, RESERVATIONID, SCORE, CONTENT)
+		VALUES (#{reviewId}, #{userId}, #{reservationId}, #{score},
+		#{content})
+	</insert>
+
+	<!-- 전체 리뷰 조회 -->
+	<select id="selectAllReviews" resultMap="reviewMap">
+		SELECT R.REVIEWID,
+		R.USERID, R.RESERVATIONID, R.SCORE, R.CONTENT,
+		C.TITLE AS CONCERTTITLE,
+		U.NAME AS NAME
+		FROM REVIEW R
+		JOIN RESERVATIONS RS ON R.RESERVATIONID =
+		RS.RESERVATIONID
+		JOIN CONCERTS C ON RS.CONCERTID = C.CONCERTID
+		JOIN
+		USERS U ON R.USERID = U.ID
+	</select>
+
+	<!-- 특정 사용자 리뷰 조회 -->
+	<select id="selectReviewsByUser" parameterType="int"
+		resultMap="reviewMap">
+		SELECT R.REVIEWID, R.USERID, R.RESERVATIONID, R.SCORE,
+		R.CONTENT,
+		C.TITLE AS CONCERTTITLE,
+		U.NAME AS NAME
+		FROM REVIEW R
+		JOIN
+		RESERVATIONS RS ON R.RESERVATIONID = RS.RESERVATIONID
+		JOIN CONCERTS C
+		ON RS.CONCERTID = C.CONCERTID
+		JOIN USERS U ON R.USERID = U.ID
+		WHERE
+		R.USERID = #{userId}
+	</select>
+
+	<!-- 콘서트 ID로 리뷰 조회 -->
+	<select id="selectReviewsByConcert" parameterType="int"
+		resultMap="reviewMap">
+		SELECT R.REVIEWID, R.USERID, R.RESERVATIONID, R.SCORE,
+		R.CONTENT,
+		C.TITLE AS CONCERTTITLE,
+		U.NAME AS NAME
+		FROM REVIEW R
+		JOIN
+		RESERVATIONS RS ON R.RESERVATIONID = RS.RESERVATIONID
+		JOIN CONCERTS C
+		ON RS.CONCERTID = C.CONCERTID
+		JOIN USERS U ON R.USERID = U.ID
+		WHERE
+		C.CONCERTID = #{concertId}
+		ORDER BY R.REVIEWID DESC
+	</select>
+
+
+	<!-- 리뷰 미작성 예약 목록 -->
+	<select id="selectWithoutReview" parameterType="int" resultType="VO.ReservationsVO">
+  SELECT
+    R.RESERVATIONID,
+    R.CONCERTID,
+    R.STATUS,          <!-- 이 부분 추가 -->
+    C.TITLE AS concertTitle
+  FROM RESERVATIONS R
+  JOIN CONCERTS C ON R.CONCERTID = C.CONCERTID
+  WHERE R.USERID = #{userId}
+  AND R.RESERVATIONID NOT IN (SELECT RESERVATIONID FROM REVIEW)
+</select>
+
+
+	<!-- 리뷰 수정 -->
+	<update id="updateReview" parameterType="VO.ReviewVO">
+		UPDATE REVIEW
+		SET SCORE =
+		#{score},
+		CONTENT = #{content}
+		WHERE REVIEWID = #{reviewId}
+	</update>
+
+	<!-- 리뷰 삭제 -->
+	<delete id="deleteReview" parameterType="int">
+		DELETE FROM REVIEW WHERE
+		REVIEWID = #{reviewId}
+	</delete>
+
+	<!-- 특정 유저가 특정 콘서트에 리뷰를 썼는지 확인 -->
+	<select id="checkReviewExistsByUserAndConcert"
+		parameterType="map" resultType="int">
+		SELECT COUNT(*)
+		FROM REVIEW R
+		JOIN
+		RESERVATIONS RS ON R.RESERVATIONID = RS.RESERVATIONID
+		WHERE R.USERID =
+		#{userId}
+		AND RS.CONCERTID = #{concertId}
+	</select>
+
+	<!-- title, category로 콘서트 리뷰 전체 조회 -->
+	<select id="selectReviewsByTitleAndCategory" parameterType="map"
+		resultMap="reviewMap">
+		SELECT R.REVIEWID, R.USERID, R.RESERVATIONID, R.SCORE,
+		R.CONTENT,
+		C.TITLE AS CONCERTTITLE,
+		U.NAME AS NAME
+		FROM REVIEW R
+		JOIN
+		RESERVATIONS RS ON R.RESERVATIONID = RS.RESERVATIONID
+		JOIN CONCERTS C
+		ON RS.CONCERTID = C.CONCERTID
+		JOIN USERS U ON R.USERID = U.ID
+		WHERE
+		C.TITLE = #{title}
+		AND C.CATEGORY = #{category}
+		ORDER BY R.REVIEWID DESC
+	</select>
+
+</mapper>

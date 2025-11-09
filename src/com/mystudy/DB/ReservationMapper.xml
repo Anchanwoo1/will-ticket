@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="reservations">
+
+   <!-- ▶ USERID로 예약 목록 조회 -->
+   <select id="selectReservationsByUserId" parameterType="int"
+      resultType="VO.ReservationsVO">
+      SELECT
+      RESERVATIONID AS reservationId,
+      USERID AS userId,
+      CONCERTID AS concertId,
+      SEATID AS seatId,
+      RESERVEDATE AS reserveDate,
+      STATUS AS status
+      FROM RESERVATIONS
+      WHERE USERID = #{userId}
+      ORDER BY
+      RESERVEDATE DESC
+   </select>
+
+   <!-- ▶ 예약 상세 정보 조회 (공연 제목, 장소, 시간, 좌석 포함) -->
+   <select id="getReservationsWithDetailsByUserId"
+      parameterType="int" resultType="VO.ReservationsVO">
+      SELECT
+      R.RESERVATIONID AS reservationId,
+      R.USERID AS userId,
+      R.CONCERTID AS concertId,
+      R.SEATID AS seatId,
+      R.RESERVEDATE AS reserveDate,
+      R.STATUS AS status,
+      C.TITLE AS
+      concertTitle,
+      C.LOCATION AS concertLocation,
+      C.STARTTIME AS
+      concertStartTime,
+      S.SEATNUMBER AS seatNumber
+      FROM RESERVATIONS R
+      JOIN
+      CONCERTS C ON R.CONCERTID = C.CONCERTID
+      JOIN SEATS S ON R.SEATID =
+      S.SEATID
+      WHERE R.USERID = #{userId}
+      ORDER BY R.RESERVEDATE DESC
+   </select>
+
+   <!-- ▶ 사용자 예매 건수 (좌석 중복 방지 등 용도) -->
+   <select id="countUserReservations" parameterType="map"
+      resultType="int">
+      SELECT COUNT(*)
+      FROM RESERVATIONS
+      WHERE USERID = #{userId}
+      AND CONCERTID = #{concertId}
+      AND STATUS != '취소됨'
+   </select>
+
+   <!-- ▶ ID로 사용자 정보 조회 -->
+   <select id="getUserById" parameterType="int"
+      resultType="VO.UserVO">
+      SELECT
+      ID,
+      NAME,
+      USERID,
+      PW,
+      PHONE,
+      REGDATE
+      FROM USERS
+      WHERE ID =
+      #{id}
+   </select>
+
+   <!-- ▶ 예약 ID로 예약 정보 조회 -->
+   <select id="getReservationById" parameterType="int"
+      resultType="VO.ReservationsVO">
+      SELECT *
+      FROM RESERVATIONS
+      WHERE RESERVATIONID =
+      #{reservationId}
+   </select>
+
+   <!-- ▶ 콘서트 ID로 공연 정보 조회 -->
+   <select id="getConcertById" parameterType="int"
+      resultType="VO.ConcertVO">
+      SELECT *
+      FROM CONCERTS
+      WHERE CONCERTID = #{concertId}
+   </select>
+
+   <!-- ▶ 예약 상태 "취소됨"으로 변경 -->
+   <update id="cancelReservation" parameterType="int">
+      UPDATE RESERVATIONS
+      SET STATUS = '취소됨'
+      WHERE RESERVATIONID = #{reservationId}
+   </update>
+
+   <select id="getConcertByreservationId" parameterType="int"
+      resultType="java.util.Date">
+      SELECT CONCERTDATE
+      FROM CONCERTS
+      WHERE CONCERTID =
+      #{concertId}
+   </select>
+
+   <select id="getConcertDateByReservationId" parameterType="int"
+      resultType="java.sql.Date">
+      SELECT CONCERTDATE FROM CONCERTS WHERE CONCERTID =
+      #{concertId}
+   </select>
+
+   <select id="selectConcertIdByReservationId" parameterType="int"
+      resultType="int">
+      SELECT CONCERTID FROM RESERVATIONS WHERE RESERVATIONID = #{reservationId}
+   </select>
+
+   <!-- ▶ 리뷰 미작성 + 공연 종료된 예약만 조회 -->
+   <select id="selectPastReservationsWithoutReview"
+      parameterType="int" resultType="VO.ReservationsVO">
+      SELECT
+      R.RESERVATIONID,
+      R.CONCERTID,
+      C.TITLE AS concertTitle
+      FROM RESERVATIONS R
+      JOIN CONCERTS C ON
+      R.CONCERTID = C.CONCERTID
+      WHERE R.USERID = #{userId}
+      AND R.RESERVATIONID
+      NOT IN (
+      SELECT RESERVATIONID FROM REVIEW
+      )
+      AND C.CONCERTDATE &lt;
+      SYSDATE
+      AND R.STATUS != '취소됨'
+   </select>
+
+   <!-- ▶ 예약 상세 조회용 resultMap (미사용 시 삭제 가능) -->
+   <resultMap id="reservationDetailResult"
+      type="VO.ReservationsVO">
+      <id property="reservationId" column="RESERVATIONID" />
+      <result property="userId" column="USERID" />
+      <result property="concertId" column="CONCERTID" />
+      <result property="seatId" column="SEATID" />
+      <result property="reserveDate" column="RESERVEDATE" />
+      <result property="status" column="STATUS" />
+      <result property="concertTitle" column="CONCERTTITLE" />
+      <result property="concertLocation" column="CONCERTLOCATION" />
+      <result property="concertStartTime" column="CONCERT_STARTTIME" />
+      <result property="seatNumber" column="SEATNO" />
+   </resultMap>
+
+</mapper>

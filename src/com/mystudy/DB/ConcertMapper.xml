@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+                        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="concert">
+
+    <!-- 최신 4개 공연 조회 -->
+    <select id="listLatest" resultMap="concertResult">
+        SELECT *
+        FROM (
+            SELECT *
+            FROM CONCERTS
+            WHERE CONCERTDATE >= SYSDATE
+            ORDER BY CREATEDAT DESC
+        ) latest
+        WHERE ROWNUM &lt;= 4
+    </select>
+
+    <!-- 공연 등록 -->
+    <insert id="insertConcert" parameterType="VO.ConcertVO">
+        <selectKey keyProperty="concertId" resultType="int" order="BEFORE">
+            SELECT SEQ_CONCERTS_CONCERTID.NEXTVAL FROM dual
+        </selectKey>
+        INSERT INTO CONCERTS
+        (CONCERTID, TITLE, CATEGORY, LOCATION,
+        CONCERTDATE, STARTTIME, CREATEDAT, IMAGE, INFO, CASTER)
+        VALUES
+        (#{concertId},
+        #{title}, #{category}, #{location},
+        #{concertDate}, #{startTime},
+        SYSDATE, #{image}, #{info}, #{caster})
+    </insert>
+
+    <!-- 공연 단건 조회 -->
+    <select id="selectById" parameterType="int" resultMap="concertResult">
+        SELECT *
+        FROM CONCERTS
+        WHERE CONCERTID = #{concertId}
+    </select>
+
+    <!-- 공연 전체 목록 (과거 공연 제외) -->
+    <select id="list" resultMap="concertResult">
+        SELECT
+            CONCERTID,
+            TITLE,
+            CATEGORY,
+            LOCATION,
+            CONCERTDATE,
+            STARTTIME,
+            CREATEDAT,
+            IMAGE
+        FROM CONCERTS
+        WHERE CONCERTDATE >= SYSDATE
+        ORDER BY TITLE, CATEGORY
+    </select>
+
+    <!-- 제목 + 카테고리로 조회 (과거 공연 제외) -->
+    <select id="selectByTitleAndCategory" parameterType="map" resultMap="concertResult">
+        SELECT
+            CONCERTID,
+            TITLE,
+            CATEGORY,
+            LOCATION,
+            CONCERTDATE,
+            STARTTIME,
+            CREATEDAT,
+            IMAGE,
+            INFO,
+            CASTER
+        FROM CONCERTS
+        WHERE TITLE = #{title}
+          AND CATEGORY = #{category}
+          AND CONCERTDATE >= SYSDATE
+    </select>
+
+    <!-- 공연 일정 조회 (단일 콘서트이므로 조건 불필요) -->
+    <select id="getScheduleByConcertId" parameterType="int" resultMap="concertResult">
+        SELECT
+            CONCERTID,
+            TITLE,
+            CATEGORY,
+            LOCATION,
+            CONCERTDATE,
+            STARTTIME,
+            CREATEDAT,
+            IMAGE
+        FROM CONCERTS
+        WHERE CONCERTID = #{concertId}
+    </select>
+
+    <!-- 제목 + 카테고리 중복 제거 목록 (과거 공연 제외) -->
+    <select id="listDistinctTitleCategory" resultType="VO.ConcertVO">
+    SELECT
+    TITLE,
+    CATEGORY,
+    MIN(IMAGE) AS IMAGE
+    FROM CONCERTS
+    WHERE CONCERTDATE >= SYSDATE
+    GROUP BY TITLE, CATEGORY
+    ORDER BY TITLE, CATEGORY
+</select>
+
+
+    <!-- 공연 수정 -->
+    <update id="updateConcert" parameterType="VO.ConcertVO">
+        UPDATE CONCERTS
+        SET
+            TITLE = #{title},
+            CATEGORY = #{category},
+            LOCATION = #{location},
+            CONCERTDATE = #{concertDate},
+            STARTTIME = #{startTime},
+            IMAGE = #{image},
+            INFO = #{info},
+            CASTER = #{caster}
+        WHERE CONCERTID = #{concertId}
+    </update>
+
+    <!-- 공연 삭제 -->
+    <delete id="deleteConcert" parameterType="int">
+        DELETE FROM CONCERTS
+        WHERE CONCERTID = #{concertId}
+    </delete>
+
+    <!-- 예약 등록 -->
+    <insert id="insertReservation" parameterType="VO.ReservationsVO">
+        <selectKey keyProperty="reservationId" resultType="int" order="BEFORE">
+            SELECT SEQ_RESERVATIONS_RESERVATIONID.NEXTVAL FROM dual
+        </selectKey>
+        INSERT INTO RESERVATIONS
+        (RESERVATIONID, USERID, CONCERTID, SEATID,
+        RESERVEDATE, STATUS)
+        VALUES
+        (#{reservationId}, #{userId}, #{concertId},
+        #{seatId}, SYSDATE, #{status})
+    </insert>
+
+    <!-- 예약 전체 조회 -->
+    <select id="selectAllReservations" resultType="VO.ReservationsVO">
+        SELECT
+            RESERVATIONID AS reservationId,
+            USERID AS userId,
+            CONCERTID AS concertId,
+            SEATID AS seatId,
+            RESERVEDATE AS reserveDate,
+            STATUS AS status
+        FROM RESERVATIONS
+        ORDER BY RESERVATIONID
+    </select>
+
+    <select id="searchByTitle" resultType="VO.ConcertVO">
+        SELECT
+            CONCERTID, TITLE,
+            CATEGORY, LOCATION, CONCERTDATE, STARTTIME, CREATEDAT, IMAGE
+        FROM
+            CONCERTS
+        WHERE TITLE LIKE '%' || #{title} || '%'
+          AND LENGTH(#{title}) >= 2
+          AND CONCERTDATE >= SYSDATE
+    </select>
+
+    <select id="selectByCategory" parameterType="string" resultType="VO.ConcertVO">
+    SELECT
+        TITLE,
+        CATEGORY,
+        MIN(IMAGE) AS IMAGE
+    FROM CONCERTS
+    WHERE CATEGORY = #{category}
+      AND CONCERTDATE >= SYSDATE
+    GROUP BY TITLE, CATEGORY
+    ORDER BY TITLE
+</select>
+
+
+    <resultMap id="concertResult" type="VO.ConcertVO">
+        <id column="CONCERTID" property="concertId" />
+        <result column="TITLE" property="title" />
+        <result column="CATEGORY" property="category" />
+        <result column="LOCATION" property="location" />
+        <result column="CONCERTDATE" property="concertDate" />
+        <result column="STARTTIME" property="startTime" />
+        <result column="CREATEDAT" property="createdAt" />
+        <result column="IMAGE" property="image" />
+        <result column="INFO" property="info"/>
+        <result column="CASTER" property="caster"/>
+    </resultMap>
+
+</mapper>

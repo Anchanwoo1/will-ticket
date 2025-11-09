@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="members">
+
+  <!-- ▶ 회원 가입 -->
+  <insert id="join" parameterType="VO.UserVO">
+    <selectKey keyProperty="id" resultType="int" order="BEFORE">
+      SELECT SEQ_USERS_ID.NEXTVAL FROM dual
+    </selectKey>
+    INSERT INTO USERS
+          (ID, NAME, USERID, PHONE, PW)
+    VALUES (#{id}, #{name}, #{userId}, #{phone}, #{pw})
+  </insert>
+
+  <!-- ▶ 로그인 -->
+  <select id="login" parameterType="VO.UserVO" resultType="VO.UserVO">
+    SELECT ID        AS id,
+           NAME      AS name,
+           USERID    AS userId,
+           PHONE     AS phone,
+           PW        AS pw
+      FROM USERS
+     WHERE USERID = #{userId}
+       AND PW     = #{pw}
+  </select>
+
+  <!-- ▶ 아이디/비밀번호 찾기 -->
+  <select id="findUserId" parameterType="VO.UserVO" resultType="String">
+    SELECT USERID
+      FROM USERS
+     WHERE NAME  = #{name}
+       AND PHONE = #{phone}
+  </select>
+
+  <select id="findPassword" parameterType="VO.UserVO" resultType="String">
+    SELECT PW
+      FROM USERS
+     WHERE USERID = #{userId}
+       AND PHONE  = #{phone}
+  </select>
+
+  <!-- ▶ 회원 단건 조회 -->
+  <select id="findById" parameterType="int" resultType="VO.UserVO">
+    SELECT ID       AS id,
+           NAME     AS name,
+           USERID   AS userId,
+           PHONE    AS phone,
+           PW       AS pw
+      FROM USERS
+     WHERE ID = #{id}
+  </select>
+  
+  <!-- 회원 정보 수정 -->
+<update id="updateUser" parameterType="VO.UserVO">
+  UPDATE USERS
+  SET
+    NAME  = #{name},
+    PHONE = #{phone},
+    PW    = #{pw}
+  WHERE ID = #{id}
+</update>
+  
+
+</mapper>
